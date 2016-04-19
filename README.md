@@ -1,6 +1,6 @@
-# SenseUI-BarChart
+# SenseUI-Spectrum
 
-A more elegant and Mobile Friendly Bar Chart for Qlik Sense
+A visual representation of a dimension and 5 measures
 
 ![SenseUI - Bar Chart](/preview.png?raw=true "SenseUI - Bar Chart")
 
