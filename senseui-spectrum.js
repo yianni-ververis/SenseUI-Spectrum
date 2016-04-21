@@ -143,6 +143,47 @@ define([
 								},
 							},
 						},
+						legend: {
+							type: "items",
+							label: "Legend",
+							items: {
+								legendTop: {
+									type: "number",
+									expression: "none",
+									label: "Top Padding",
+									defaultValue: 10,
+									ref: "vars.legend.top",
+								},
+								labelsVisible: {
+									type: "boolean",
+									component: "switch",
+									label: "Show labels?",
+									ref: "vars.legend.labelsVisible",
+									options: [{
+										value: true,
+										label: "On"
+									}, {
+										value: false,
+										label: "Off"
+									}],
+									defaultValue: true
+								},
+								numbersVisible: {
+									type: "boolean",
+									component: "switch",
+									label: "Show numbers?",
+									ref: "vars.legend.numbersVisible",
+									options: [{
+										value: true,
+										label: "On"
+									}, {
+										value: false,
+										label: "Off"
+									}],
+									defaultValue: true
+								},
+							},
+						},
 					}
 				}
 			}
@@ -177,7 +218,8 @@ define([
 				visible: layout.vars.yaxis.visible,
 				width: (layout.vars.yaxis.width) ? layout.vars.yaxis.width:150,
 				characters: (layout.vars.yaxis.characters) ? layout.vars.yaxis.characters:50,
-				padding: 15
+				padding: 15,
+				minWidth: 150,
 			},
 			footer: {
 				visible: layout.vars.xaxis.visible,
@@ -189,9 +231,15 @@ define([
 				padding: 10,
 			},
 			legend: {
-				height: 100,
+				height: 50,
 				padding: 10,
+				top: (layout.vars.legend && layout.vars.legend.top) ? layout.vars.legend.top : 10,
 				color: '#999999',
+				labelVisible: (layout.vars.legend && layout.vars.legend.labelsVisible) ? true : false,
+				numbersVisible: (!layout.vars.legend || !layout.vars.legend.numbersVisible) ? false : true,
+			},
+			css: {
+				breakpoint: 500,
 			},
 			template: '',
 			dimensionTitle: layout.qHyperCube.qDimensionInfo, //[0].qFallbackTitle
@@ -222,6 +270,12 @@ define([
 		// Check the height of the combines rects
 		var calculatedHeight = vars.data.length * (vars.line.height + vars.line.padding);
 
+		// Adjust the label width based on viewport
+		if (vars.width < vars.css.breakpoint) {
+			// vars.label.width = vars.width*0.6;
+			vars.label.width = vars.label.minWidth;
+		}
+
 		$element.append($(vars.template).width(vars.width).height(vars.height));
 		if (vars.footer.visible) {
 			$('#' + vars.id + ' .content').height(vars.height-vars.footer.height);
@@ -249,7 +303,7 @@ define([
 
 		var x = d3.scale.linear()
 			.domain([1,vars.data[0].length-1]) // get the number of all measures
-			.range([vars.label.width, vars.canvas.width-vars.dot.size]);
+			.range([vars.label.width, vars.canvas.width-vars.dot.size-vars.legend.padding]);
 
 		var y = d3.scale.linear()
 			.domain([0,vars.data.length])
@@ -350,47 +404,53 @@ define([
 		
 		var svgLegend = d3.select('#' + vars.id + ' .legend')
 			.append('svg')
-			.attr("width", vars.width)
-			.attr("height", vars.line.height*2);
+			.attr("width", vars.width - vars.legend.padding)
+			.attr("height", vars.legend.top + vars.line.height);
 
 		// Add the legend line
 		svgLegend
 			.append("line")
-			.attr('x1',vars.label.width + vars.legend.padding)
-			.attr('x2',vars.canvas.width - vars.legend.padding)
-			.attr("y1", vars.line.height)
-			.attr("y2", vars.line.height)
+			.attr('x1',(vars.width < vars.css.breakpoint) ?vars.legend.padding:vars.label.width + vars.legend.padding)
+			.attr('x2',vars.canvas.width - (vars.legend.padding*2))
+			.attr("y1", vars.legend.top)
+			.attr("y2", vars.legend.top)
 			.attr("stroke-width", 1)
 			.attr("shape-rendering", "crispEdges")
 			.attr("stroke", vars.legend.color);
 
+
 		// Numbers
+	if (vars.legend.numbersVisible) {
 		svgLegend
 			.append("text")
 				.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.color + ';font-style: italic;font-weight: bold;')
 				.text(1)
-				.attr('x',vars.label.width)
-				.attr('y',vars.line.height);
-		svgLegend
-			.append("text")
-				.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.color + '; font-style: italic; font-weight: bold; text-anchor: end;')
-				.text(vars.measureTitle.length)
-				.attr('x',vars.canvas.width)
-				.attr('y',vars.line.height);
+				.attr('x',(vars.width < vars.css.breakpoint) ?0:vars.label.width)
+				.attr('y',vars.legend.top);
+
+			svgLegend
+				.append("text")
+					.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.color + '; font-style: italic; font-weight: bold; text-anchor: end;')
+					.text(vars.measureTitle.length)
+					.attr('x',vars.canvas.width - vars.legend.padding)
+					.attr('y',vars.legend.top);
+		}
 
 		// Text underneath
-		svgLegend
-			.append("text")
-				.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.legend.color + '; font-style: italic;font-weight: bold;')
-				.text(vars.measureTitle[0].qFallbackTitle)
-				.attr('x',vars.label.width)
-				.attr('y',vars.line.height + (vars.legend.padding*2));
-		svgLegend
-			.append("text")
-				.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.legend.color + '; font-style: italic; font-weight: bold; text-anchor: end;')
-				.text(vars.measureTitle[vars.measureTitle.length-1].qFallbackTitle)
-				.attr('x',vars.canvas.width)
-				.attr('y',vars.line.height + (vars.legend.padding*2));
+		if (vars.legend.labelVisible) {
+			svgLegend
+				.append("text")
+					.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.legend.color + '; font-style: italic;font-weight: bold;')
+					.text(vars.measureTitle[0].qFallbackTitle)
+					.attr('x',(vars.width < vars.css.breakpoint) ?0:vars.label.width)
+					.attr('y',vars.legend.top + (vars.legend.padding*2));
+			svgLegend
+				.append("text")
+					.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.legend.color + '; font-style: italic; font-weight: bold; text-anchor: end;')
+					.text(vars.measureTitle[vars.measureTitle.length-1].qFallbackTitle)
+					.attr('x',vars.canvas.width - vars.legend.padding)
+					.attr('y',vars.legend.top + (vars.legend.padding*2));
+		}
 
 
 		var lines = svg.selectAll(".content")
@@ -401,7 +461,7 @@ define([
 			.append("g").attr('class','lines')
 			.append('line')
 				.attr('x1',vars.label.width)
-				.attr('x2',vars.canvas.width)
+				.attr('x2',vars.canvas.width - vars.legend.padding)
 				.attr('y1', function(d,i){
 					return y(i)+19;
 				})
