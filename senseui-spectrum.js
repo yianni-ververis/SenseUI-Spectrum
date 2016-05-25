@@ -147,6 +147,13 @@ define([
 							type: "items",
 							label: "Legend",
 							items: {
+								legendheight: {
+									type: "number",
+									expression: "none",
+									label: "Height",
+									defaultValue: 50,
+									ref: "vars.legend.height",
+								},
 								legendTop: {
 									type: "number",
 									expression: "none",
@@ -184,6 +191,33 @@ define([
 								},
 							},
 						},
+						indicator: {
+							type: "items",
+							label: "Indicator",
+							items: {
+								indicatorUrl: {
+									type: "string",
+									expression: "none",
+									label: "Url",
+									defaultValue: "https://sense-demo.qlik.com/extensions/senseui-spectrum/pinhead.png",
+									ref: "vars.indicator.url",
+								},
+								indicatorWidth: {
+									type: "string",
+									expression: "none",
+									label: "Width",
+									defaultValue: 20,
+									ref: "vars.indicator.width",
+								},
+								indicatorHeight: {
+									type: "string",
+									expression: "none",
+									label: "Height",
+									defaultValue: 30,
+									ref: "vars.indicator.height",
+								},
+							},
+						},
 					}
 				}
 			}
@@ -199,6 +233,7 @@ define([
 
 	me.paint = function($element,layout) {
 		var vars = {
+			v: '1.0.1',
 			id: layout.qInfo.qId,
 			data: layout.qHyperCube.qDataPages[0].qMatrix,
 			height: $element.height(),
@@ -231,7 +266,7 @@ define([
 				padding: 10,
 			},
 			legend: {
-				height: 50,
+				height: (layout.vars.legend && layout.vars.legend.height) ? layout.vars.legend.height : 50,
 				padding: 10,
 				top: (layout.vars.legend && layout.vars.legend.top) ? layout.vars.legend.top : 10,
 				color: '#999999',
@@ -241,6 +276,12 @@ define([
 			css: {
 				breakpoint: 500,
 			},
+			indicator: {
+				url: (layout.vars.indicator && layout.vars.indicator.url) ? layout.vars.indicator.url : 'https://sense-demo.qlik.com/extensions/senseui-spectrum/pinhead.png',
+				width: (layout.vars.indicator && layout.vars.indicator.width) ? layout.vars.indicator.width : 20,
+				height: (layout.vars.indicator && layout.vars.indicator.height) ? layout.vars.indicator.height : 30,
+			},
+			tooltip: {},
 			template: '',
 			dimensionTitle: layout.qHyperCube.qDimensionInfo, //[0].qFallbackTitle
 			measureTitle: layout.qHyperCube.qMeasureInfo, //[0].qFallbackTitle
@@ -326,7 +367,7 @@ define([
 		var tip = d3.tip()
 			.attr('class', vars.id + ' d3-tip')
 			.offset([-10, 0]) 
-			.offsetTop($('#' + vars.id).offset().top) 
+			.extensionData(vars.tooltip)
 			.html(function(j, d, i) {
 				var html = '\
 					<div class="dimension">' + vars.data[j-1][0].qText + '</div>\
@@ -386,9 +427,11 @@ define([
 				line = [],
 				lineNumber = 0,
 				lineHeight = 1, // ems
+				x = text.attr("x"),
 				y = text.attr("y"),
 				dy = parseFloat(text.attr("dy")),
-				tspan = text.text(null).append("tspan").attr("x", -vars.label.width).attr("y", y).attr("dy", dy + "em");
+				// tspan = text.text(null).append("tspan").attr("x", -vars.label.width).attr("y", y).attr("dy", dy + "em");
+				tspan = text.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
 				while (word = words.pop()) {
 					line.push(word);
 					tspan.text(line.join(" "));
@@ -396,7 +439,8 @@ define([
 						line.pop();
 						tspan.text(line.join(" "));
 						line = [word];
-						tspan = text.append("tspan").attr("x", -vars.label.width).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+						// tspan = text.append("tspan").attr("x", -vars.label.width).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+						tspan = text.append("tspan").attr("x", x).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
 					}
 				}
 			});
@@ -405,7 +449,7 @@ define([
 		var svgLegend = d3.select('#' + vars.id + ' .legend')
 			.append('svg')
 			.attr("width", vars.width - vars.legend.padding)
-			.attr("height", vars.legend.top + vars.line.height);
+			.attr("height", vars.legend.top + vars.legend.height);
 
 		// Add the legend line
 		svgLegend
@@ -420,19 +464,21 @@ define([
 
 
 		// Numbers
-	if (vars.legend.numbersVisible) {
-		svgLegend
-			.append("text")
-				.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.color + ';font-style: italic;font-weight: bold;')
-				.text(1)
-				.attr('x',(vars.width < vars.css.breakpoint) ?0:vars.label.width)
-				.attr('y',vars.legend.top);
+		if (vars.legend.numbersVisible) {
+			svgLegend
+				.append("text")
+					.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.color + '; font-style: italic;font-weight: bold;')
+					.text(1)
+					.attr('x',(vars.width < vars.css.breakpoint) ?0:vars.label.width)
+					.attr('dy',0)
+					.attr('y',vars.legend.top);
 
 			svgLegend
 				.append("text")
 					.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.color + '; font-style: italic; font-weight: bold; text-anchor: end;')
 					.text(vars.measureTitle.length)
 					.attr('x',vars.canvas.width - vars.legend.padding)
+					.attr('dy',0)
 					.attr('y',vars.legend.top);
 		}
 
@@ -443,13 +489,21 @@ define([
 					.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.legend.color + '; font-style: italic;font-weight: bold;')
 					.text(vars.measureTitle[0].qFallbackTitle)
 					.attr('x',(vars.width < vars.css.breakpoint) ?0:vars.label.width)
+					.attr('dy',0)
 					.attr('y',vars.legend.top + (vars.legend.padding*2));
+
 			svgLegend
 				.append("text")
 					.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.legend.color + '; font-style: italic; font-weight: bold; text-anchor: end;')
 					.text(vars.measureTitle[vars.measureTitle.length-1].qFallbackTitle)
 					.attr('x',vars.canvas.width - vars.legend.padding)
+					.attr('dy',0)
 					.attr('y',vars.legend.top + (vars.legend.padding*2));
+
+
+			svgLegend
+				.selectAll("text") 
+					.call(wrap, vars.width/2);
 		}
 
 
@@ -511,22 +565,48 @@ define([
 				}
 			});
 		// Add the Indicators
+		// lines
+		// 	.enter()
+		// 	.append("g").attr('class','indicator')
+		// 	.selectAll('#' + vars.id + ' indicator')
+		// 	// .append("foreignObject")
+		// 	.data(function(e,j) { 
+		// 		return e; 
+		// 	})
+		// 	.enter()
+		// 	.append("foreignObject")
+		// 	.append("xhtml:div")
+		// 	.attr("class", "indicator")
+		// 	.attr('style', function(d,i) { 
+		// 		console.log(x(i)-10)
+		// 		if(i>0 && d.qNum==vars.data[d.ypos].max) {
+		// 			return 'left:' + (x(i)-10) + 'px; top:'+(y(d.ypos)+$('#' + vars.id + ' .legend').height()-10)+'px; visibility:visible;';
+		// 		} 
+		// 	});
 		lines
 			.enter()
-			.append("g").attr('class','indicator')
-			.selectAll('#' + vars.id + ' indicator')
-			.append("foreignObject")
+			.append("g").attr('class','ind')
+			.selectAll('#' + vars.id + ' ind')
 			.data(function(e,j) { 
 				return e; 
 			})
 			.enter()
-			.append("foreignObject")
-			.append("xhtml:div")
-			.attr("class", "indicator")
+			.append("svg:image")
+			.attr("xlink:href", vars.indicator.url)
+			.attr("x", function(d,i){	
+				return x(i)-10;
+			})
+			.attr("y", function(d,i){
+				return y(d.ypos)-10;
+			})
+			.attr("width", vars.indicator.width)
+			.attr("height", vars.indicator.height)
 			.attr('style', function(d,i) { 
 				if(i>0 && d.qNum==vars.data[d.ypos].max) {
-					return 'left:' + (x(i)-10) + 'px; top:'+(y(d.ypos)+$('#' + vars.id + ' .legend').height()-10)+'px; visibility:visible;';
-				} 
+					return 'visibility:visible;';
+				} else {
+					return 'visibility:hidden;';
+				}
 			});
 
 		// // Add the Text
@@ -570,7 +650,7 @@ define([
 					return y(d.ypos)+33;
 				}
 			});
-		me.log('info', 'SenseUI-Spectrum:', 'Loaded!');
+		me.log('info', 'SenseUI-Spectrum ' + vars.v + ':', '#' + vars.id + ' Loaded!');
 	};
 
 	// Controller for binding
