@@ -189,6 +189,20 @@ define([
 									}],
 									defaultValue: true
 								},
+								middleVisible: {
+									type: "boolean",
+									component: "switch",
+									label: "Show In between Legend labels?",
+									ref: "vars.legend.middleVisible",
+									options: [{
+										value: true,
+										label: "On"
+									}, {
+										value: false,
+										label: "Off"
+									}],
+									defaultValue: false
+								}, //middleVisible
 							},
 						},
 						indicator: {
@@ -233,7 +247,7 @@ define([
 
 	me.paint = function($element,layout) {
 		var vars = {
-			v: '1.0.1',
+			v: '1.0.2',
 			id: layout.qInfo.qId,
 			data: layout.qHyperCube.qDataPages[0].qMatrix,
 			height: $element.height(),
@@ -272,6 +286,7 @@ define([
 				color: '#999999',
 				labelVisible: (layout.vars.legend && layout.vars.legend.labelsVisible) ? true : false,
 				numbersVisible: (!layout.vars.legend || !layout.vars.legend.numbersVisible) ? false : true,
+				middleVisible: (!layout.vars.legend || !layout.vars.legend.middleVisible) ? false : true,
 			},
 			css: {
 				breakpoint: 500,
@@ -491,6 +506,27 @@ define([
 					.attr('x',(vars.width < vars.css.breakpoint) ?0:vars.label.width)
 					.attr('dy',0)
 					.attr('y',vars.legend.top + (vars.legend.padding*2));
+			// If you want to show the inbetween labels
+			if (vars.legend.middleVisible) {
+				svgLegend
+					.selectAll("path")
+					.data(vars.measureTitle)
+					.enter()
+					.append("text")
+						.attr('style', 'font-size:' + vars.fontSize + '; fill: ' +  vars.legend.color + '; font-style: italic; font-weight: bold; text-anchor: middle;')
+						.text(function(d,i){
+							if (i!=0 && i!=vars.measureTitle.length-1) {
+								return d.qFallbackTitle;
+							}
+						})
+						.attr('x', function(d,i){
+							if (i!=0 && i!=vars.measureTitle.length-1) {
+								return x(i+1);
+							}
+						})
+						.attr('dy',0)
+						.attr('y',vars.legend.top + (vars.legend.padding*2));
+			}
 
 			svgLegend
 				.append("text")
@@ -500,12 +536,31 @@ define([
 					.attr('dy',0)
 					.attr('y',vars.legend.top + (vars.legend.padding*2));
 
-
 			svgLegend
 				.selectAll("text") 
 					.call(wrap, vars.width/2);
+
 		}
 
+		// Add Legend Dots
+		svgLegend
+			.selectAll("path")
+			.data(vars.measureTitle)
+			.enter()
+			.append("circle")
+			.attr("cx", function(d,i) { 
+				if(i==0) {
+					return vars.label.width + vars.legend.padding + 2;
+				} else if(i==vars.measureTitle.length-1) {
+					return x(i+1)-8;
+				} else {
+					return x(i+1);
+				} 
+			})
+			.attr("cy", vars.legend.padding)
+			.attr("r", vars.dot.size)
+			.style("fill", "#999999")
+			.style("stroke", "#999999");
 
 		var lines = svg.selectAll(".content")
 			.data(vars.data);
@@ -564,25 +619,7 @@ define([
 					return "#FFFFFF";
 				}
 			});
-		// Add the Indicators
-		// lines
-		// 	.enter()
-		// 	.append("g").attr('class','indicator')
-		// 	.selectAll('#' + vars.id + ' indicator')
-		// 	// .append("foreignObject")
-		// 	.data(function(e,j) { 
-		// 		return e; 
-		// 	})
-		// 	.enter()
-		// 	.append("foreignObject")
-		// 	.append("xhtml:div")
-		// 	.attr("class", "indicator")
-		// 	.attr('style', function(d,i) { 
-		// 		console.log(x(i)-10)
-		// 		if(i>0 && d.qNum==vars.data[d.ypos].max) {
-		// 			return 'left:' + (x(i)-10) + 'px; top:'+(y(d.ypos)+$('#' + vars.id + ' .legend').height()-10)+'px; visibility:visible;';
-		// 		} 
-		// 	});
+
 		lines
 			.enter()
 			.append("g").attr('class','ind')
