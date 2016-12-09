@@ -26,6 +26,16 @@ A visual representation of a dimension and 5 measures
 - Width
 - Height
 
+
+*********************************
+**Note for Qlik Sense <3.1.2**
+*********************************
+
+- senseui-spectrum.js 
+	- uncomment Line 6
+	- comment/delete Line 7 & Line 13
+
+
 ![SenseUI - Bar Chart](/preview.png?raw=true "SenseUI - Bar Chart")
 
 [Download zip file](https://github.com/yianni-ververis/SenseUI-Spectrum/archive/master.zip)

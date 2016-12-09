@@ -3,11 +3,14 @@ define([
 	"jquery",
 	"qvangular",
 	'underscore',
-	"core.utils/theme",
+	// "core.utils/theme",  // For Qlik Sense < 3.1.2
+	"text!themes/old/sense/theme.json", // For Qlik Sense >= 3.1.2
 	"css!./senseui-spectrum.css",
 	'./d3-tip'
 ], function(qlik, $, qvangular, _, Theme) {
 'use strict';
+
+	Theme = JSON.parse(Theme);
 
 	// Define properties
 	var me = {
@@ -247,7 +250,7 @@ define([
 
 	me.paint = function($element,layout) {
 		var vars = {
-			v: '1.0.2',
+			v: '1.0.3',
 			id: layout.qInfo.qId,
 			data: layout.qHyperCube.qDataPages[0].qMatrix,
 			height: $element.height(),
